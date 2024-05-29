@@ -1,44 +1,60 @@
-// import 'dart:async';
-// import 'package:sqflite/sqflite.dart';
-// import 'package:path/path.dart';
+import 'dart:io';
+import 'package:sqlite3/sqlite3.dart';
 
-// class DatabaseHelper {
-//   static final DatabaseHelper _instance = DatabaseHelper._internal();
-//   factory DatabaseHelper() => _instance;
-//   static Database? _database;
+class DatabaseHelper {
+  static final DatabaseHelper _instance = DatabaseHelper._internal();
+  factory DatabaseHelper() => _instance;
+  static Database? _database;
 
-//   DatabaseHelper._internal();
+  DatabaseHelper._internal();
 
-//   Future<Database> get database async {
-//     if (_database != null) return _database!;
-//     _database = await _initDatabase();
-//     return _database!;
-//   }
+  Database get database {
+    if (_database != null) return _database!;
+    _database = _initDatabase();
+    return _database!;
+  }
 
-//   Future<Database> _initDatabase() async {
-//     String path = join(await getDatabasesPath(), 'github_users.db');
-//     return await openDatabase(
-//       path,
-//       version: 1,
-//       onCreate: (db, version) {
-//         return db.execute(
-//           'CREATE TABLE users(id INTEGER PRIMARY KEY, login TEXT, name TEXT, created_at TEXT)',
-//         );
-//       },
-//     );
-//   }
+  Database _initDatabase() {
+    var databasesPath = Directory.current.path;
+    String path = '$databasesPath/github_users.db';
+    bool exists = File(path).existsSync();
+    var database = sqlite3.open(path);
+    if (!exists) {
+      database.execute(
+        'CREATE TABLE users(id INTEGER PRIMARY KEY, login TEXT, name TEXT, created_at TEXT)',
+      );
+    }
+    return database;
+  }
 
-//   Future<void> insertUser(Map<String, dynamic> user) async {
-//     final db = await database;
-//     await db.insert(
-//       'users',
-//       user,
-//       conflictAlgorithm: ConflictAlgorithm.replace,
-//     );
-//   }
+  void insertUser(Map<String, dynamic> user) {
+    var result = database.select(
+      'SELECT * FROM users WHERE login = ?',
+      [user['login']],
+    );
 
-//   Future<List<Map<String, dynamic>>> getUsers() async {
-//     final db = await database;
-//     return await db.query('users');
-//   }
-// }
+    if (result.isNotEmpty) {
+      database.execute(
+        'UPDATE users SET name = ?, created_at = ? WHERE login = ?',
+        [user['name'], user['created_at'], user['login']],
+      );
+    } else {
+      database.execute(
+        'INSERT INTO users(id, login, name, created_at) VALUES (?, ?, ?, ?)',
+        [user['id'], user['login'], user['name'], user['created_at']],
+      );
+    }
+  }
+
+  List<Map<String, dynamic>> getUsers() {
+    var result = database.select('SELECT * FROM users');
+    return result
+        .map((row) => {
+              'id': row['id'],
+              'login': row['login'],
+              'name': row['name'],
+              'created_at': row['created_at'],
+            })
+        .toList();
+  }
+}

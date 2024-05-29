@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:tuple/tuple.dart';
-// import 'database_helper.dart';
+import 'database_helper.dart';
 
 class GitHubFreshdesk {
   final String githubToken;
   final String freshdeskToken;
   final String freshdeskDomain;
   final http.Client httpClient;
-  // final DatabaseHelper dbHelper = DatabaseHelper();
+  final DatabaseHelper dbHelper = DatabaseHelper();
 
   GitHubFreshdesk({
     required this.githubToken,
@@ -26,13 +26,11 @@ class GitHubFreshdesk {
 
     if (response.statusCode == 200) {
       final user = jsonDecode(response.body);
-      // await dbHelper.insertUser({
-      //   'login': user['login'],
-      //   'name': user['name'],
-      //   'created_at': user['created_at'],
-      // }).catchError((error) {
-      //   print('Failed to insert user into database: $error');
-      // });
+      dbHelper.insertUser({
+        'login': user['login'],
+        'name': user['name'],
+        'created_at': user['created_at'],
+      });
 
       return user;
     } else {
@@ -41,7 +39,6 @@ class GitHubFreshdesk {
   }
 
   // Create or update the Freshdesk contact
-
   Future<Tuple2<String, Map<String, dynamic>>> createOrUpdateFreshdeskContact(
       Map<String, dynamic> user) async {
     final email = user['email'];

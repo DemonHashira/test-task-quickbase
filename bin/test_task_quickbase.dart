@@ -1,3 +1,4 @@
+import 'package:test_task_quickbase/database_helper.dart';
 import 'package:test_task_quickbase/github_freshdesk.dart';
 import 'package:dotenv/dotenv.dart';
 import 'dart:convert';
@@ -25,6 +26,13 @@ void main(List<String> arguments) async {
     final result = await githubFreshdesk.createOrUpdateFreshdeskContact(user);
     print(
         '${result.item1} Freshdesk Contact: ${encoder.convert(result.item2)}');
+
+    final dbHelper = DatabaseHelper();
+    final users = dbHelper.getUsers();
+    print('\nDatabase contetnt:');
+    for (var user in users) {
+      print(encoder.convert(user));
+    }
   } catch (e) {
     print('An error occurred: $e');
   }
