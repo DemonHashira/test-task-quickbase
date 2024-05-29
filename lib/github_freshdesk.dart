@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'database_helper.dart';
 
-class GitHubFreshDesk {
+class GitHubFreshdesk {
   final String githubToken;
   final String freshdeskToken;
   final String freshdeskDomain;
   final DatabaseHelper dbHelper = DatabaseHelper();
 
-  GitHubFreshDesk({
+  GitHubFreshdesk({
     required this.githubToken,
     required this.freshdeskToken,
     required this.freshdeskDomain,

@@ -8,7 +8,7 @@ void main(List<String> arguments) async {
   final freshdeskDomain = dotenv['FRESHDESK_DOMAIN']!;
   final username = arguments[0];
 
-  final githubFreshdesk = GitHubFreshDesk(
+  final githubFreshdesk = GitHubFreshdesk(
     githubToken: githubToken,
     freshdeskToken: freshdeskToken,
     freshdeskDomain: freshdeskDomain,
