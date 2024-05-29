@@ -9,12 +9,16 @@ void main(List<String> arguments) async {
   final freshdeskToken = dotenv['FRESHDESK_TOKEN']!;
   final freshdeskDomain = dotenv['FRESHDESK_DOMAIN']!;
   final username = arguments[0];
+  final dbHelper = DatabaseHelper();
 
   final githubFreshdesk = GitHubFreshdesk(
     githubToken: githubToken,
     freshdeskToken: freshdeskToken,
     freshdeskDomain: freshdeskDomain,
   );
+
+  // Reset the database before running the CLI
+  // dbHelper.resetDatabase();
 
   try {
     final user = await githubFreshdesk.getGitHubUser(username);
@@ -27,7 +31,6 @@ void main(List<String> arguments) async {
     print(
         '${result.item1} Freshdesk Contact: ${encoder.convert(result.item2)}');
 
-    final dbHelper = DatabaseHelper();
     final users = dbHelper.getUsers();
     print('\nDatabase contetnt:');
     for (var user in users) {

@@ -27,6 +27,14 @@ class DatabaseHelper {
     return database;
   }
 
+  void resetDatabase() {
+    var databasesPath = Directory.current.path;
+    String path = '$databasesPath/github_users.db';
+    File(path).deleteSync();
+
+    _database = _initDatabase();
+  }
+
   void insertUser(Map<String, dynamic> user) {
     var result = database.select(
       'SELECT * FROM users WHERE login = ?',
