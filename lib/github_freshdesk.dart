@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:dotenv/dotenv.dart' as dotenv;
 import 'database_helper.dart';
 
 class GitHubFreshDesk {
