@@ -19,7 +19,7 @@ class GitHubFreshdesk {
 
   // Get request method to get the the user's data
   Future<Map<String, dynamic>> getGitHubUser(String username) async {
-    final response = await http.get(
+    final response = await httpClient.get(
       Uri.parse('https://api.github.com/users/$username'),
       headers: {'Authorization': 'token $githubToken'},
     );
@@ -46,7 +46,7 @@ class GitHubFreshdesk {
       throw Exception('GitHub user does not have a public email address');
     }
 
-    final response = await http.get(
+    final response = await httpClient.get(
       Uri.parse(
           'https://$freshdeskDomain.freshdesk.com/api/v2/contacts?email=$email'),
       headers: {
@@ -60,7 +60,7 @@ class GitHubFreshdesk {
       final contacts = jsonDecode(response.body) as List;
       if (contacts.isNotEmpty) {
         final contactId = contacts.first['id'];
-        final updateResponse = await http.put(
+        final updateResponse = await httpClient.put(
           Uri.parse(
               'https://$freshdeskDomain.freshdesk.com/api/v2/contacts/$contactId'),
           headers: {
@@ -78,7 +78,7 @@ class GitHubFreshdesk {
 
         return Tuple2('Updated', jsonDecode(updateResponse.body));
       } else {
-        final createResponse = await http.post(
+        final createResponse = await httpClient.post(
           Uri.parse('https://$freshdeskDomain.freshdesk.com/api/v2/contacts'),
           headers: {
             'Authorization':
