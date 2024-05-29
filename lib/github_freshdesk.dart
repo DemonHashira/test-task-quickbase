@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:tuple/tuple.dart';
 // import 'database_helper.dart';
 
 class GitHubFreshdesk {
@@ -40,8 +41,14 @@ class GitHubFreshdesk {
   }
 
   // Create or update the Freshdesk contact
-  Future<void> createOrUpdateFreshdeskContact(Map<String, dynamic> user) async {
+
+  Future<Tuple2<String, Map<String, dynamic>>> createOrUpdateFreshdeskContact(
+      Map<String, dynamic> user) async {
     final email = user['email'];
+    if (email == null) {
+      throw Exception('GitHub user does not have a public email address');
+    }
+
     final response = await http.get(
       Uri.parse(
           'https://$freshdeskDomain.freshdesk.com/api/v2/contacts?email=$email'),
@@ -71,6 +78,8 @@ class GitHubFreshdesk {
           throw Exception(
               'Failed to update Freshdesk contact: ${updateResponse.body}');
         }
+
+        return Tuple2('Updated', jsonDecode(updateResponse.body));
       } else {
         final createResponse = await http.post(
           Uri.parse('https://$freshdeskDomain.freshdesk.com/api/v2/contacts'),
@@ -86,6 +95,8 @@ class GitHubFreshdesk {
           throw Exception(
               'Failed to create Freshdesk contact: ${createResponse.body}');
         }
+
+        return Tuple2('Created', jsonDecode(createResponse.body));
       }
     } else {
       throw Exception('Failed to fetch Freshdesk contact: ${response.body}');

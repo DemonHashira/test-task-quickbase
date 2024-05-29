@@ -12,6 +12,7 @@ dependencies:
   http: ^1.2.1
   path: ^1.8.0
   sqlite3: ^2.4.3
+  tuple: ^2.0.2
 
 dev_dependencies:
   lints: ^3.0.0

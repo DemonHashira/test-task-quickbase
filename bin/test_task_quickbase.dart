@@ -20,10 +20,11 @@ void main(List<String> arguments) async {
     var encoder = JsonEncoder.withIndent('  ');
     print('GitHub User: ${encoder.convert(user)}');
 
-    // final contact = await githubFreshdesk.createOrUpdateFreshdeskContact(user);
-    // print('Freshdesk Contact: ${encoder.convert(contact)}');
+    print('\n');
 
-    print('Contact created or updated successfully.');
+    final result = await githubFreshdesk.createOrUpdateFreshdeskContact(user);
+    print(
+        '${result.item1} Freshdesk Contact: ${encoder.convert(result.item2)}');
   } catch (e) {
     print('An error occurred: $e');
   }
