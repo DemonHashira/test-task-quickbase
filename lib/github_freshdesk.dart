@@ -1,18 +1,20 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'database_helper.dart';
+// import 'database_helper.dart';
 
 class GitHubFreshdesk {
   final String githubToken;
   final String freshdeskToken;
   final String freshdeskDomain;
-  final DatabaseHelper dbHelper = DatabaseHelper();
+  final http.Client httpClient;
+  // final DatabaseHelper dbHelper = DatabaseHelper();
 
   GitHubFreshdesk({
     required this.githubToken,
     required this.freshdeskToken,
     required this.freshdeskDomain,
-  });
+    http.Client? httpClient,
+  }) : httpClient = httpClient ?? http.Client();
 
   // Get request method to get the the user's data
   Future<Map<String, dynamic>> getGitHubUser(String username) async {
@@ -23,13 +25,13 @@ class GitHubFreshdesk {
 
     if (response.statusCode == 200) {
       final user = jsonDecode(response.body);
-      await dbHelper.insertUser({
-        'login': user['login'],
-        'name': user['name'],
-        'created_at': user['created_at'],
-      }).catchError((error) {
-        print('Failed to insert user into database: $error');
-      });
+      // await dbHelper.insertUser({
+      //   'login': user['login'],
+      //   'name': user['name'],
+      //   'created_at': user['created_at'],
+      // }).catchError((error) {
+      //   print('Failed to insert user into database: $error');
+      // });
 
       return user;
     } else {
