@@ -28,6 +28,8 @@ class GitHubFreshDesk {
         'login': user['login'],
         'name': user['name'],
         'created_at': user['created_at'],
+      }).catchError((error) {
+        print('Failed to insert user into database: $error');
       });
 
       return user;
