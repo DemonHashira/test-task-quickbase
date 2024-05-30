@@ -10,6 +10,8 @@ import 'package:path/path.dart' as path;
 
 void main() {
   group('GitHubFreshdesk', () {
+    // Verifies that getGitHubUser can successfully parse
+    // and return user data from a JSON response
     test('getGitHubUser returns user data', () async {
       final mockClient = MockClient((request) async {
         return http.Response(
@@ -34,6 +36,8 @@ void main() {
       expect(user['email'], 'test@example.com');
     });
 
+    // Ensures that getGitHubUser correctly handles the scenario
+    // where the requested user does not exist
     test('getGitHubUser throws an exception for a non-existent user', () async {
       final mockClient = MockClient((request) async {
         return http.Response('Not Found', 404);
@@ -50,6 +54,8 @@ void main() {
           throwsException);
     });
 
+    // Test for when getGitHubUser throws
+    // an exception given an invalid token is provided
     test('getGitHubUser throws an exception for an invalid token', () async {
       final mockClient = MockClient((request) async {
         return http.Response('Unauthorized', 401);
@@ -66,6 +72,8 @@ void main() {
           throwsException);
     });
 
+    // Test that checks whether createOrUpdateFreshdeskContact can
+    // successfully create a new contact when provided with valid data
     test('createOrUpdateFreshdeskContact creates a new contact', () async {
       final mockClient = MockClient((request) async {
         if (request.method == 'GET') {
@@ -101,6 +109,8 @@ void main() {
       expect(result.item2['email'], 'test@example.com');
     });
 
+    // Test that verifies that createOrUpdateFreshdeskContact
+    // can successfully update an existing contact when provided with valid data
     test('createOrUpdateFreshdeskContact updates an existing contact',
         () async {
       final mockClient = MockClient((request) async {
@@ -141,6 +151,8 @@ void main() {
       expect(result.item2['name'], 'Test User');
     });
 
+    // This test ensures that createOrUpdateFreshdeskContact correctly handles
+    // the scenario where the provided data does not include an email
     test('createOrUpdateFreshdeskContact throws an exception for missing email',
         () async {
       final githubFreshdesk = GitHubFreshdesk(
@@ -190,6 +202,8 @@ void main() {
       File(databasePath).deleteSync();
     });
 
+    // Verifies that insertUser can successfully insert
+    // a user into the database when provided with valid data
     test('insertUser inserts a user into the databse', () {
       try {
         final user = {
@@ -210,6 +224,8 @@ void main() {
       }
     });
 
+    // This test checks if getUsers can successfully
+    // retrieve all users from the database
     test('getUsers returns all users from the database', () {
       final users = [
         {
