@@ -26,6 +26,7 @@ class GitHubFreshdesk {
     }
   }
 
+  // Fetches GitHub user data
   Future<Map<String, dynamic>> getGitHubUser(String username) async {
     final response = await httpClient.get(
       Uri.parse('https://api.github.com/users/$username'),
@@ -44,13 +45,8 @@ class GitHubFreshdesk {
     return user;
   }
 
-  Future<Tuple2<String, Map<String, dynamic>>> createOrUpdateFreshdeskContact(
-      Map<String, dynamic> user) async {
-    final email = user['email'];
-    if (email == null) {
-      throw Exception('GitHub user does not have a public email address');
-    }
-
+  // Check if a contact with the given email already exists in Freshdesk
+  Future<Map<String, dynamic>?> checkFreshdeskContact(String email) async {
     final headers = {
       'Authorization':
           'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
@@ -65,11 +61,26 @@ class GitHubFreshdesk {
     handleError(response, 'Failed to fetch Freshdesk contact');
 
     final contacts = jsonDecode(response.body) as List;
-    if (contacts.isNotEmpty) {
-      final contactId = contacts.first['id'];
+    return contacts.isNotEmpty ? contacts.first : null;
+  }
+
+  // Create or update a contact in Freshdesk
+  Future<Tuple2<String, Map<String, dynamic>>> createOrUpdateFreshdeskContact(
+      Map<String, dynamic> user) async {
+    final email = user['email'];
+    if (email == null) {
+      throw Exception('GitHub user does not have a public email address');
+    }
+
+    final existingContact = await checkFreshdeskContact(email);
+    if (existingContact != null) {
       final updateResponse = await httpClient.put(
-        Uri.parse('$freshdeskBaseUrl/contacts/$contactId'),
-        headers: headers,
+        Uri.parse('$freshdeskBaseUrl/contacts/${existingContact['id']}'),
+        headers: {
+          'Authorization':
+              'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
+          'Content-Type': 'application/json'
+        },
         body: jsonEncode({'name': user['name'], 'email': user['email']}),
       );
 
@@ -79,7 +90,11 @@ class GitHubFreshdesk {
     } else {
       final createResponse = await httpClient.post(
         Uri.parse('$freshdeskBaseUrl/contacts'),
-        headers: headers,
+        headers: {
+          'Authorization':
+              'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
+          'Content-Type': 'application/json'
+        },
         body: jsonEncode({'name': user['name'], 'email': user['email']}),
       );
 
