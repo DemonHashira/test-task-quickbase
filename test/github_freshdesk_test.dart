@@ -10,75 +10,100 @@ import 'package:path/path.dart' as path;
 
 void main() {
   group('GitHubFreshdesk', () {
-    // Verifies that getGitHubUser can successfully parse
-    // and return user data from a JSON response
-    test('getGitHubUser returns user data', () async {
-      final mockClient = MockClient((request) async {
-        return http.Response(
-            jsonEncode({
-              'login': 'testuser',
-              'email': 'test@example.com',
-              'name': 'Test User',
-              'created_at': '2023-10-01T00:00:00Z'
-            }),
-            200);
+    late GitHubFreshdesk githubFreshdesk;
+    late MockClient mockClient;
+
+    // Set up the mock client before each test
+    setUp(() {
+      mockClient = MockClient((request) async {
+        if (request.url.path.endsWith('users/testuser')) {
+          // Mock response for existing user
+          return http.Response(
+              jsonEncode({
+                'login': 'testuser',
+                'email': 'test@example.com',
+                'name': 'Test User',
+                'created_at': '2023-10-01T00:00:00Z'
+              }),
+              200);
+        } else if (request.url.path.endsWith('users/nonexistentuser')) {
+          // Mock response for non-existent user
+          return http.Response('Not Found', 404);
+        } else if (request.url.path.endsWith('users/invalidtokenuser')) {
+          // Mock response for invalid token
+          return http.Response('Unauthorized', 401);
+        } else if (request.method == 'POST') {
+          // Mock response for creating a contact
+          return http.Response(
+              jsonEncode({
+                'id': 123,
+                'name': 'Test User',
+                'email': 'test@example.com',
+              }),
+              201);
+        } else if (request.method == 'PUT') {
+          // Mock response for updating a contact
+          return http.Response(
+              jsonEncode({
+                'id': 123,
+                'name': 'Test User',
+                'email': 'test@example.com',
+              }),
+              200);
+        } else if (request.method == 'GET' &&
+            request.url.path.endsWith('contacts') &&
+            request.url.queryParameters['email'] == 'test@example.com') {
+          // Mock response for existing contact
+          return http.Response(
+              jsonEncode([
+                {'id': 123, 'name': 'Old Name', 'email': 'test@example.com'}
+              ]),
+              200);
+        }
+        return http.Response('Bad Request', 400);
       });
 
-      final githubFreshdesk = GitHubFreshdesk(
+      githubFreshdesk = GitHubFreshdesk(
         githubToken: 'fake_token',
         freshdeskToken: 'fake_token',
         freshdeskDomain: 'fake_domain',
         httpClient: mockClient,
       );
+    });
 
+    test('getGitHubUser returns user data', () async {
+      // Test for valid user data retrieval
       final user = await githubFreshdesk.getGitHubUser('testuser');
       expect(user['login'], 'testuser');
       expect(user['email'], 'test@example.com');
     });
 
-    // Ensures that getGitHubUser correctly handles the scenario
-    // where the requested user does not exist
-    test('getGitHubUser throws an exception for a non-existent user', () async {
-      final mockClient = MockClient((request) async {
-        return http.Response('Not Found', 404);
-      });
-
-      final githubFreshdesk = GitHubFreshdesk(
-        githubToken: 'fake_token',
-        freshdeskToken: 'fake_token',
-        freshdeskDomain: 'fake_domain',
-        httpClient: mockClient,
+    test('getGitHubUser throws exception for non-existent user', () async {
+      // Test for handling non-existent user
+      expect(
+        () async => await githubFreshdesk.getGitHubUser('nonexistentuser'),
+        throwsA(isA<Exception>()),
       );
-
-      expect(() async => await githubFreshdesk.getGitHubUser('nonexistentuser'),
-          throwsException);
     });
 
-    // Test for when getGitHubUser throws
-    // an exception given an invalid token is provided
-    test('getGitHubUser throws an exception for an invalid token', () async {
-      final mockClient = MockClient((request) async {
-        return http.Response('Unauthorized', 401);
-      });
-
-      final githubFreshdesk = GitHubFreshdesk(
-        githubToken: 'invalid_token',
-        freshdeskToken: 'fake_token',
-        freshdeskDomain: 'fake_domain',
-        httpClient: mockClient,
+    test('getGitHubUser throws exception for invalid token', () async {
+      // Test for handling invalid token
+      expect(
+        () async => await githubFreshdesk.getGitHubUser('invalidtokenuser'),
+        throwsA(isA<Exception>()),
       );
-
-      expect(() async => await githubFreshdesk.getGitHubUser('testuser'),
-          throwsException);
     });
 
-    // Test that checks whether createOrUpdateFreshdeskContact can
-    // successfully create a new contact when provided with valid data
     test('createOrUpdateFreshdeskContact creates a new contact', () async {
+      // Mock client for creating a contact
       final mockClient = MockClient((request) async {
-        if (request.method == 'GET') {
+        if (request.method == 'GET' &&
+            request.url.path.endsWith('contacts') &&
+            request.url.queryParameters['email'] == 'test@example.com') {
+          // No existing contact found
           return http.Response(jsonEncode([]), 200);
         } else if (request.method == 'POST') {
+          // Successfully create contact
           return http.Response(
               jsonEncode({
                 'id': 123,
@@ -97,6 +122,7 @@ void main() {
         httpClient: mockClient,
       );
 
+      // User data for testing
       final user = {
         'login': 'testuser',
         'name': 'Test User',
@@ -104,41 +130,15 @@ void main() {
         'created_at': '2023-10-01T00:00:00Z'
       };
 
+      // Test creating a new contact
       final result = await githubFreshdesk.createOrUpdateFreshdeskContact(user);
       expect(result.item1, 'Created');
       expect(result.item2['email'], 'test@example.com');
     });
 
-    // Test that verifies that createOrUpdateFreshdeskContact
-    // can successfully update an existing contact when provided with valid data
     test('createOrUpdateFreshdeskContact updates an existing contact',
         () async {
-      final mockClient = MockClient((request) async {
-        if (request.method == 'GET') {
-          return http.Response(
-              jsonEncode([
-                {'id': 123, 'name': 'Old Name', 'email': 'test@example.com'}
-              ]),
-              200);
-        } else if (request.method == 'PUT') {
-          return http.Response(
-              jsonEncode({
-                'id': 123,
-                'name': 'Test User',
-                'email': 'test@example.com',
-              }),
-              200);
-        }
-        return http.Response('Bad Request', 400);
-      });
-
-      final githubFreshdesk = GitHubFreshdesk(
-        githubToken: 'fake_token',
-        freshdeskToken: 'fake_token',
-        freshdeskDomain: 'fake_domain',
-        httpClient: mockClient,
-      );
-
+      // User data for testing
       final user = {
         'login': 'testuser',
         'name': 'Test User',
@@ -146,21 +146,15 @@ void main() {
         'created_at': '2023-10-01T00:00:00Z'
       };
 
+      // Test updating an existing contact
       final result = await githubFreshdesk.createOrUpdateFreshdeskContact(user);
       expect(result.item1, 'Updated');
       expect(result.item2['name'], 'Test User');
     });
 
-    // This test ensures that createOrUpdateFreshdeskContact correctly handles
-    // the scenario where the provided data does not include an email
-    test('createOrUpdateFreshdeskContact throws an exception for missing email',
+    test('createOrUpdateFreshdeskContact throws exception for missing email',
         () async {
-      final githubFreshdesk = GitHubFreshdesk(
-        githubToken: 'fake_token',
-        freshdeskToken: 'fake_token',
-        freshdeskDomain: 'fake_domain',
-      );
-
+      // User data with missing email
       final user = {
         'login': 'testuser',
         'name': 'Test User',
@@ -168,18 +162,20 @@ void main() {
         'created_at': '2023-10-01T00:00:00Z'
       };
 
+      // Test for handling missing email
       expect(
-          () async =>
-              await githubFreshdesk.createOrUpdateFreshdeskContact(user),
-          throwsException);
+        () async => await githubFreshdesk.createOrUpdateFreshdeskContact(user),
+        throwsA(isA<Exception>()),
+      );
     });
   });
 
   group('Database tests', () {
     late DatabaseHelper dbHelper;
     late Database database;
-    String databasePath = '';
+    late String databasePath;
 
+    // Set up the database before each test
     setUp(() {
       databasePath = path.join(Directory.current.path, 'test.db');
       dbHelper = DatabaseHelper();
@@ -197,36 +193,34 @@ void main() {
       dbHelper.resetDatabase();
     });
 
+    // Tear down the database after each test
     tearDown(() {
       database.dispose();
-      File(databasePath).deleteSync();
-    });
-
-    // Verifies that insertUser can successfully insert
-    // a user into the database when provided with valid data
-    test('insertUser inserts a user into the databse', () {
-      try {
-        final user = {
-          'id': 1,
-          'login': 'testuser',
-          'name': 'Test User',
-          'created_at': '2023-10-01T00:00:00Z'
-        };
-        dbHelper.insertUser(user);
-
-        final result = dbHelper.getUsers();
-        expect(result.length, 1);
-        expect(result.first['login'], 'testuser');
-        expect(result.first['name'], 'Test User');
-        expect(result.first['created_at'], '2023-10-01T00:00:00Z');
-      } catch (e) {
-        print('Error: $e');
+      if (File(databasePath).existsSync()) {
+        File(databasePath).deleteSync();
       }
     });
 
-    // This test checks if getUsers can successfully
-    // retrieve all users from the database
+    test('insertUser inserts a user into the database', () {
+      // User data for testing
+      final user = {
+        'id': 1,
+        'login': 'testuser',
+        'name': 'Test User',
+        'created_at': '2023-10-01T00:00:00Z'
+      };
+      dbHelper.insertUser(user);
+
+      // Test inserting a user
+      final result = dbHelper.getUsers();
+      expect(result.length, 1);
+      expect(result.first['login'], 'testuser');
+      expect(result.first['name'], 'Test User');
+      expect(result.first['created_at'], '2023-10-01T00:00:00Z');
+    });
+
     test('getUsers returns all users from the database', () {
+      // Multiple users for testing
       final users = [
         {
           'id': 1,
@@ -245,6 +239,7 @@ void main() {
         dbHelper.insertUser(user);
       }
 
+      // Test retrieving all users
       final result = dbHelper.getUsers();
       expect(result.length, 2);
       expect(result[0]['login'], 'testuser1');
