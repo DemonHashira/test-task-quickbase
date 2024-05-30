@@ -18,7 +18,7 @@ void main(List<String> arguments) async {
   );
 
   // Reset the database before running the CLI
-  // dbHelper.resetDatabase();
+  dbHelper.resetDatabase();
 
   try {
     final user = await githubFreshdesk.getGitHubUser(username);
@@ -32,7 +32,7 @@ void main(List<String> arguments) async {
         '${result.item1} Freshdesk Contact: ${encoder.convert(result.item2)}');
 
     final users = dbHelper.getUsers();
-    print('\nDatabase contetnt:');
+    print('\nDatabase content:');
     for (var user in users) {
       print(encoder.convert(user));
     }

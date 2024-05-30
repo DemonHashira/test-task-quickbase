@@ -1,8 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
+import 'package:test_task_quickbase/database_helper.dart';
 import 'package:test_task_quickbase/github_freshdesk.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:path/path.dart' as path;
 
 void main() {
   group('GitHubFreshdesk', () {
@@ -156,6 +160,79 @@ void main() {
           () async =>
               await githubFreshdesk.createOrUpdateFreshdeskContact(user),
           throwsException);
+    });
+  });
+
+  group('Database tests', () {
+    late DatabaseHelper dbHelper;
+    late Database database;
+    String databasePath = '';
+
+    setUp(() {
+      databasePath = path.join(Directory.current.path, 'test.db');
+      dbHelper = DatabaseHelper();
+      database = sqlite3.open(databasePath);
+
+      database.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY,
+          login TEXT,
+          name TEXT,
+          created_at TEXT
+        )
+      ''');
+
+      dbHelper.resetDatabase();
+    });
+
+    tearDown(() {
+      database.dispose();
+      File(databasePath).deleteSync();
+    });
+
+    test('insertUser inserts a user into the databse', () {
+      try {
+        final user = {
+          'id': 1,
+          'login': 'testuser',
+          'name': 'Test User',
+          'created_at': '2023-10-01T00:00:00Z'
+        };
+        dbHelper.insertUser(user);
+
+        final result = dbHelper.getUsers();
+        expect(result.length, 1);
+        expect(result.first['login'], 'testuser');
+        expect(result.first['name'], 'Test User');
+        expect(result.first['created_at'], '2023-10-01T00:00:00Z');
+      } catch (e) {
+        print('Error: $e');
+      }
+    });
+
+    test('getUsers returns all users from the database', () {
+      final users = [
+        {
+          'id': 1,
+          'login': 'testuser1',
+          'name': 'Test User 1',
+          'created_at': '2023-10-01T00:00:00Z'
+        },
+        {
+          'id': 2,
+          'login': 'testuser2',
+          'name': 'Test User 2',
+          'created_at': '2023-10-02T00:00:00Z'
+        }
+      ];
+      for (var user in users) {
+        dbHelper.insertUser(user);
+      }
+
+      final result = dbHelper.getUsers();
+      expect(result.length, 2);
+      expect(result[0]['login'], 'testuser1');
+      expect(result[1]['login'], 'testuser2');
     });
   });
 }
