@@ -9,36 +9,41 @@ class GitHubFreshdesk {
   final String freshdeskDomain;
   final http.Client httpClient;
   final DatabaseHelper dbHelper = DatabaseHelper();
+  final String freshdeskBaseUrl;
 
   GitHubFreshdesk({
     required this.githubToken,
     required this.freshdeskToken,
     required this.freshdeskDomain,
     http.Client? httpClient,
-  }) : httpClient = httpClient ?? http.Client();
+  })  : httpClient = httpClient ?? http.Client(),
+        freshdeskBaseUrl = 'https://$freshdeskDomain.freshdesk.com/api/v2';
 
-  // Get request method to get the the user's data
+  // Helper function to handle errors
+  void handleError(http.Response response, String errorMessage) {
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('$errorMessage: ${response.body}');
+    }
+  }
+
   Future<Map<String, dynamic>> getGitHubUser(String username) async {
     final response = await httpClient.get(
       Uri.parse('https://api.github.com/users/$username'),
       headers: {'Authorization': 'token $githubToken'},
     );
 
-    if (response.statusCode == 200) {
-      final user = jsonDecode(response.body);
-      dbHelper.insertUser({
-        'login': user['login'],
-        'name': user['name'],
-        'created_at': user['created_at'],
-      });
+    handleError(response, 'Failed to fetch GitHub user');
 
-      return user;
-    } else {
-      throw Exception('Failed to load GitHub user');
-    }
+    final user = jsonDecode(response.body);
+    dbHelper.insertUser({
+      'login': user['login'],
+      'name': user['name'],
+      'created_at': user['created_at'],
+    });
+
+    return user;
   }
 
-  // Create or update the Freshdesk contact
   Future<Tuple2<String, Map<String, dynamic>>> createOrUpdateFreshdeskContact(
       Map<String, dynamic> user) async {
     final email = user['email'];
@@ -46,57 +51,41 @@ class GitHubFreshdesk {
       throw Exception('GitHub user does not have a public email address');
     }
 
+    final headers = {
+      'Authorization':
+          'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
+      'Content-Type': 'application/json'
+    };
+
     final response = await httpClient.get(
-      Uri.parse(
-          'https://$freshdeskDomain.freshdesk.com/api/v2/contacts?email=$email'),
-      headers: {
-        'Authorization':
-            'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
-        'Content-Type': 'application/json'
-      },
+      Uri.parse('$freshdeskBaseUrl/contacts?email=$email'),
+      headers: headers,
     );
 
-    if (response.statusCode == 200) {
-      final contacts = jsonDecode(response.body) as List;
-      if (contacts.isNotEmpty) {
-        final contactId = contacts.first['id'];
-        final updateResponse = await httpClient.put(
-          Uri.parse(
-              'https://$freshdeskDomain.freshdesk.com/api/v2/contacts/$contactId'),
-          headers: {
-            'Authorization':
-                'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode({'name': user['name'], 'email': user['email']}),
-        );
+    handleError(response, 'Failed to fetch Freshdesk contact');
 
-        if (updateResponse.statusCode != 200) {
-          throw Exception(
-              'Failed to update Freshdesk contact: ${updateResponse.body}');
-        }
+    final contacts = jsonDecode(response.body) as List;
+    if (contacts.isNotEmpty) {
+      final contactId = contacts.first['id'];
+      final updateResponse = await httpClient.put(
+        Uri.parse('$freshdeskBaseUrl/contacts/$contactId'),
+        headers: headers,
+        body: jsonEncode({'name': user['name'], 'email': user['email']}),
+      );
 
-        return Tuple2('Updated', jsonDecode(updateResponse.body));
-      } else {
-        final createResponse = await httpClient.post(
-          Uri.parse('https://$freshdeskDomain.freshdesk.com/api/v2/contacts'),
-          headers: {
-            'Authorization':
-                'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
-            'Content-Type': 'application/json'
-          },
-          body: jsonEncode({'name': user['name'], 'email': user['email']}),
-        );
+      handleError(updateResponse, 'Failed to update Freshdesk contact');
 
-        if (createResponse.statusCode != 201) {
-          throw Exception(
-              'Failed to create Freshdesk contact: ${createResponse.body}');
-        }
-
-        return Tuple2('Created', jsonDecode(createResponse.body));
-      }
+      return Tuple2('Updated', jsonDecode(updateResponse.body));
     } else {
-      throw Exception('Failed to fetch Freshdesk contact: ${response.body}');
+      final createResponse = await httpClient.post(
+        Uri.parse('$freshdeskBaseUrl/contacts'),
+        headers: headers,
+        body: jsonEncode({'name': user['name'], 'email': user['email']}),
+      );
+
+      handleError(createResponse, 'Failed to create Freshdesk contact');
+
+      return Tuple2('Created', jsonDecode(createResponse.body));
     }
   }
 }
