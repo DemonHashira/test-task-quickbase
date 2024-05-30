@@ -21,16 +21,19 @@ void main(List<String> arguments) async {
   dbHelper.resetDatabase();
 
   try {
+    // Fetch GitHub user data and print it
     final user = await githubFreshdesk.getGitHubUser(username);
     var encoder = JsonEncoder.withIndent('  ');
     print('GitHub User: ${encoder.convert(user)}');
 
     print('\n');
 
+    // Create or update Freshdesk contact with GitHub user data and print the result
     final result = await githubFreshdesk.createOrUpdateFreshdeskContact(user);
     print(
         '${result.item1} Freshdesk Contact: ${encoder.convert(result.item2)}');
 
+    // Fetch and print all users from the database
     final users = dbHelper.getUsers();
     print('\nDatabase content:');
     for (var user in users) {

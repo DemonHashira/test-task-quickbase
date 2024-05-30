@@ -2,18 +2,21 @@ import 'dart:io';
 import 'package:sqlite3/sqlite3.dart';
 
 class DatabaseHelper {
+  // Singleton instance and database reference
   static final DatabaseHelper _instance = DatabaseHelper._internal();
   factory DatabaseHelper() => _instance;
   static Database? _database;
 
   DatabaseHelper._internal();
 
+  // Getter for database that initializes if null
   Database get database {
     if (_database != null) return _database!;
     _database = _initDatabase();
     return _database!;
   }
 
+  // Initializes the database and creates table if it does not exist
   Database _initDatabase() {
     var databasesPath = Directory.current.path;
     String path = '$databasesPath/github_users.db';
@@ -27,6 +30,7 @@ class DatabaseHelper {
     return database;
   }
 
+  // Resets database by deleting and re-initializing
   void resetDatabase() {
     var databasesPath = Directory.current.path;
     String path = '$databasesPath/github_users.db';
@@ -35,6 +39,7 @@ class DatabaseHelper {
     _database = _initDatabase();
   }
 
+  // Insert or update user in the database
   void insertUser(Map<String, dynamic> user) {
     var result = database.select(
       'SELECT * FROM users WHERE login = ?',
@@ -54,6 +59,7 @@ class DatabaseHelper {
     }
   }
 
+  // Fetch all users from the database
   List<Map<String, dynamic>> getUsers() {
     var result = database.select('SELECT * FROM users');
     return result
