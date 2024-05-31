@@ -33,6 +33,7 @@ void main(List<String> arguments) async {
     final user = await githubFreshdesk.getGitHubUser(username!);
     var encoder = JsonEncoder.withIndent('  ');
 
+    // Check if the user has the required fields
     final fields = ['email', 'name', 'created_at', 'login'];
     for (var field in fields) {
       if (user[field] == null) {
@@ -42,6 +43,7 @@ void main(List<String> arguments) async {
       }
     }
 
+    // Check if the user wants to create a new Freshdesk contact
     stdout.write('Do you want to create a new Freshdesk contact? (y/n) ');
     if (stdin.readLineSync()!.toLowerCase() != 'y') {
       stdout.write(

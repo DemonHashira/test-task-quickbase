@@ -11,6 +11,7 @@ class GitHubFreshdesk {
   final DatabaseHelper dbHelper = DatabaseHelper();
   final String freshdeskBaseUrl;
 
+  // Constructor for GitHubFreshdesk class
   GitHubFreshdesk({
     required this.githubToken,
     required this.freshdeskToken,
@@ -33,6 +34,7 @@ class GitHubFreshdesk {
       headers: {'Authorization': 'token $githubToken'},
     );
 
+    // Handle error if user fetch fails
     handleError(response, 'Failed to fetch GitHub user');
 
     final user = jsonDecode(response.body);
@@ -62,6 +64,7 @@ class GitHubFreshdesk {
       headers: headers,
     );
 
+    // Handle error if contact fetch fails
     handleError(response, 'Failed to fetch Freshdesk contact');
 
     final contacts = jsonDecode(response.body) as List;
@@ -73,6 +76,7 @@ class GitHubFreshdesk {
       Map<String, dynamic> user) async {
     final existingContact = await checkFreshdeskContact(user['email']);
     if (existingContact != null) {
+      // Update the contact if it already exists
       final updateResponse = await httpClient.put(
         Uri.parse('$freshdeskBaseUrl/contacts/${existingContact['id']}'),
         headers: {
@@ -87,6 +91,7 @@ class GitHubFreshdesk {
 
       return Tuple2('Updated', jsonDecode(updateResponse.body));
     } else {
+      // Create a new contact if it does not exist
       final createResponse = await httpClient.post(
         Uri.parse('$freshdeskBaseUrl/contacts'),
         headers: {
