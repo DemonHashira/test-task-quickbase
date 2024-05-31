@@ -38,7 +38,9 @@ void main() {
               jsonEncode({
                 'id': 123,
                 'name': 'Test User',
-                'email': 'test@example.com',
+                'email': request.body.contains('"email":null')
+                    ? null
+                    : 'test@example.com',
               }),
               201);
         } else if (request.method == 'PUT') {
@@ -51,14 +53,18 @@ void main() {
               }),
               200);
         } else if (request.method == 'GET' &&
-            request.url.path.endsWith('contacts') &&
-            request.url.queryParameters['email'] == 'test@example.com') {
-          // Mock response for existing contact
-          return http.Response(
-              jsonEncode([
-                {'id': 123, 'name': 'Old Name', 'email': 'test@example.com'}
-              ]),
-              200);
+            request.url.path.endsWith('contacts')) {
+          if (request.url.queryParameters['email'] == 'test@example.com') {
+            // Mock response for existing contact
+            return http.Response(
+                jsonEncode([
+                  {'id': 123, 'name': 'Old Name', 'email': 'test@example.com'}
+                ]),
+                200);
+          } else if (request.url.queryParameters['email'] == null) {
+            // No existing contact found
+            return http.Response(jsonEncode([]), 200);
+          }
         }
         return http.Response('Bad Request', 400);
       });
@@ -152,9 +158,9 @@ void main() {
       expect(result.item2['name'], 'Test User');
     });
 
-    test('createOrUpdateFreshdeskContact throws exception for missing email',
+    test('createOrUpdateFreshdeskContact creates new contact for missing email',
         () async {
-      // User data with missing email
+      // User data with null email
       final user = {
         'login': 'testuser',
         'name': 'Test User',
@@ -162,11 +168,10 @@ void main() {
         'created_at': '2023-10-01T00:00:00Z'
       };
 
-      // Test for handling missing email
-      expect(
-        () async => await githubFreshdesk.createOrUpdateFreshdeskContact(user),
-        throwsA(isA<Exception>()),
-      );
+      // Test creating a new contact
+      final result = await githubFreshdesk.createOrUpdateFreshdeskContact(user);
+      expect(result.item1, 'Created');
+      expect(result.item2['email'], null);
     });
   });
 

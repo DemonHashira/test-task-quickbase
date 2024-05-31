@@ -46,7 +46,11 @@ class GitHubFreshdesk {
   }
 
   // Check if a contact with the given email already exists in Freshdesk
-  Future<Map<String, dynamic>?> checkFreshdeskContact(String email) async {
+  Future<Map<String, dynamic>?> checkFreshdeskContact(String? email) async {
+    if (email == null) {
+      return null;
+    }
+
     final headers = {
       'Authorization':
           'Basic ${base64Encode(utf8.encode('$freshdeskToken:x'))}',
@@ -67,12 +71,7 @@ class GitHubFreshdesk {
   // Create or update a contact in Freshdesk
   Future<Tuple2<String, Map<String, dynamic>>> createOrUpdateFreshdeskContact(
       Map<String, dynamic> user) async {
-    final email = user['email'];
-    if (email == null) {
-      throw Exception('GitHub user does not have a public email address');
-    }
-
-    final existingContact = await checkFreshdeskContact(email);
+    final existingContact = await checkFreshdeskContact(user['email']);
     if (existingContact != null) {
       final updateResponse = await httpClient.put(
         Uri.parse('$freshdeskBaseUrl/contacts/${existingContact['id']}'),
