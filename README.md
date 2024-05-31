@@ -51,6 +51,7 @@ dart pub get
 ```
 KEY1=value1
 KEY2=value2
+KEY3=value3
 ```
 ### Running the application
 In the root of the project run:
