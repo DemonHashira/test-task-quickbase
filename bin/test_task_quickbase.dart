@@ -25,48 +25,47 @@ void main(List<String> arguments) async {
   final username = stdin.readLineSync();
   print('');
 
-  final user = await githubFreshdesk.getGitHubUser(username!);
-
-  stdout.write('Do you want to create a new Freshdesk contact? (y/n) ');
-  if (stdin.readLineSync()!.toLowerCase() != 'y') {
-    stdout.write('Do you want to update an existing Freshdesk contact? (y/n) ');
-    if (stdin.readLineSync()!.toLowerCase() == 'y') {
-      updateContact = true;
-      try {
-        final checkExistenceFreshDesk =
-            await githubFreshdesk.checkFreshdeskContact(user['email']);
-        if (checkExistenceFreshDesk == null) {
-          throw GitHubUserException(
-            '\nNo contact with this username exists. \nPlease try again next time with a different username! \nGoodbye!',
-          );
-        }
-      } catch (e) {
-        if (e is GitHubUserException) {
-          print(e.message);
-          return;
-        }
-      }
-    } else {
-      print('');
-      print('Next time then! See you later!');
-      return;
-    }
-  }
-
   // Reset the database before running the CLI
   dbHelper.resetDatabase();
 
   try {
     // Fetch GitHub user data
-    final user = await githubFreshdesk.getGitHubUser(username);
+    final user = await githubFreshdesk.getGitHubUser(username!);
     var encoder = JsonEncoder.withIndent('  ');
 
     final fields = ['email', 'name', 'created_at', 'login'];
     for (var field in fields) {
       if (user[field] == null) {
         throw GitHubUserException(
-          'GitHub user does not have a public $field \nPlease try again next time with a different username! \nGoodbye!',
+          'GitHub user does not have a public $field. Please try again next time with a different username! Goodbye!',
         );
+      }
+    }
+
+    stdout.write('Do you want to create a new Freshdesk contact? (y/n) ');
+    if (stdin.readLineSync()!.toLowerCase() != 'y') {
+      stdout.write(
+          'Do you want to update this existing Freshdesk contact? (y/n) ');
+      if (stdin.readLineSync()!.toLowerCase() == 'y') {
+        updateContact = true;
+        try {
+          final checkExistenceFreshDesk =
+              await githubFreshdesk.checkFreshdeskContact(user['email']);
+          if (checkExistenceFreshDesk == null) {
+            throw GitHubUserException(
+              '\nNo contact with this email exists. Please try again next time with a different username! Goodbye!',
+            );
+          }
+        } catch (e) {
+          if (e is GitHubUserException) {
+            print(e.message);
+            return;
+          }
+        }
+      } else {
+        print('');
+        print('Next time then! See you later!');
+        return;
       }
     }
 
@@ -75,7 +74,7 @@ void main(List<String> arguments) async {
       final existingContact =
           await githubFreshdesk.checkFreshdeskContact(user['email']);
       if (existingContact != null) {
-        print('A contact with this username already exists.');
+        print('A contact with this email already exists.');
         stdout.write('Do you want to update this contact? (y/n) ');
         if (stdin.readLineSync()!.toLowerCase() != 'y') {
           print('');
@@ -84,6 +83,7 @@ void main(List<String> arguments) async {
         }
       }
     }
+
     // Print GitHub user data
     print('\nGitHub User: ${encoder.convert(user)}');
     print('');
@@ -111,6 +111,15 @@ void main(List<String> arguments) async {
   } catch (e) {
     if (e is GitHubUserException) {
       print(e.message);
+    } else if (e is Exception &&
+        e.toString().contains('Failed to fetch GitHub user')) {
+      final errorDetails = jsonDecode(e.toString().split(': ').last);
+      print('Error: ${errorDetails['message']}');
+      print('Please check the username and try again.');
+      print('For more details, visit: ${errorDetails['documentation_url']}');
+    } else {
+      print('An unexpected error occurred: $e');
+      print('Please try again later.');
     }
   }
 }
