@@ -55,7 +55,7 @@ KEY2=value2
 ### Running the application
 In the root of the project run:
 ```
-dart run bin/test_task_quickbase.dart <GitHubUsername>
+dart run bin/test_task_quickbase.dart
 ```
 ### Running the tests:
 Run the following command in the root:
