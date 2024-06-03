@@ -68,7 +68,7 @@ dart test
 ### Libraries Used 
 * http: For making HTTP requests.
 
-* sqflite: For SQLite database operations.
+* sqlite3: For SQLite database operations.
 * path: For handling file system paths.
 * dotenv: For handling the env variables
 * tuple: For handling the output
