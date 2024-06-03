@@ -12,7 +12,9 @@ test-task-quickbase/
 │
 ├── lib/
 │   ├── github_freshdesk.dart            # Main library code
-│   └── database_helper.dart             # Helper class for database operations
+│   ├── database_helper.dart             # Helper class for database operations
+│   └── exceptions/
+│       └── github_user_exception.dart   # Custom exceptions for GitHub user operations
 │
 ├── test/
 │   └── github_freshdesk_test.dart       # Unit tests
@@ -29,7 +31,7 @@ test-task-quickbase/
 ├── github_users.db                      
 ├── LICENSE                              
 ├── CHANGELOG.md                         
-├── README.md                            
+├── README.md                                                   
 ```
 # Getting Started
 ### Prerequisites
